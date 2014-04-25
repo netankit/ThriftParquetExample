@@ -70,9 +70,9 @@ public class TestThriftParquet {
 
 		// Reading back the file just written in Parquet-format
 		// ERROR: java.lang.NullPointerException Occurs!!!
-		pr = new ParquetReader<Object>(fileToCreate, null);
+		pr = new ParquetReader<Object>(fileToCreate, null, null);
 
-		String myFileOutput = (String) pr.read();
+		String myFileOutput = pr.toString();
 		System.out.println("My file output is: " + myFileOutput);
 
 	}
