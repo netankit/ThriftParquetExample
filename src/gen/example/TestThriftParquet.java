@@ -48,6 +48,8 @@ public class TestThriftParquet {
 		Configuration conf = new Configuration();
 
 		Path fileToCreate = new Path("target/emp.parquet");
+		// Deletes the existing file with the same name if found on the given
+		// path in the filesystem.
 		FileSystem fs = fileToCreate.getFileSystem(conf);
 		if (fs.exists(fileToCreate)) {
 			fs.delete(fileToCreate, true);
@@ -56,6 +58,8 @@ public class TestThriftParquet {
 		TaskAttemptID taskId = new TaskAttemptID("local", 0, true, 0, 0);
 
 		// Writing a Thrift serialized object to Parquet.
+		// Note: ThriftToParquetFileWriter is the way to go if the thrift is
+		// already coming in the form of bytes
 		ThriftToParquetFileWriter w = new ThriftToParquetFileWriter(
 				fileToCreate, ContextUtil.newTaskAttemptContext(conf, taskId),
 				protocolFactory, emp.getClass());
