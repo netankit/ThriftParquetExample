@@ -15,10 +15,13 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.junit.Test;
 
+import parquet.hadoop.ParquetReader;
 import parquet.hadoop.thrift.ThriftToParquetFileWriter;
 import parquet.hadoop.util.ContextUtil;
 
 public class TestThriftParquet {
+	private ParquetReader<Object> pr;
+
 	@Test
 	public void myTestImplementation() throws IOException,
 			InterruptedException, TException {
@@ -42,20 +45,17 @@ public class TestThriftParquet {
 		} catch (TException e) {
 			e.printStackTrace();
 		}
+		Configuration conf = new Configuration();
 
 		Path fileToCreate = new Path("target/emp.parquet");
+		FileSystem fs = fileToCreate.getFileSystem(conf);
+		if (fs.exists(fileToCreate)) {
+			fs.delete(fileToCreate, true);
+		}
 		TProtocolFactory protocolFactory = new TCompactProtocol.Factory();
-		Configuration conf = new Configuration();
 		TaskAttemptID taskId = new TaskAttemptID("local", 0, true, 0, 0);
 
-		// ThriftParquetWriter<TBase<?, ?>> w2 = new
-		// ThriftParquetWriter<TBase<?, ?>>(
-		// fileToCreate, (Class<TBase<?, ?>>) emp.getClass(),
-		// CompressionCodecName.UNCOMPRESSED);
-
-		// w2.write(); // Need to add a Thrift object of type TBase.
-		// w2.close();
-
+		// Writing a Thrift serialized object to Parquet.
 		ThriftToParquetFileWriter w = new ThriftToParquetFileWriter(
 				fileToCreate, ContextUtil.newTaskAttemptContext(conf, taskId),
 				protocolFactory, emp.getClass());
@@ -63,9 +63,18 @@ public class TestThriftParquet {
 		w.write(new BytesWritable(empDtl));
 		w.close();
 
+		// Test to check the file was written to Parquet.
 		FileSystem fileSystem = fileToCreate.getFileSystem(conf);
 		boolean exists = fileSystem.exists(fileToCreate);
 		assertEquals(exists, true);
+
+		// Reading back the file just written in Parquet-format
+		// ERROR: java.lang.NullPointerException Occurs!!!
+		pr = new ParquetReader<Object>(fileToCreate, null);
+
+		String myFileOutput = (String) pr.read();
+		System.out.println("My file output is: " + myFileOutput);
+
 	}
 
 }
