@@ -7,17 +7,19 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.junit.Test;
 
-import parquet.hadoop.metadata.CompressionCodecName;
-import parquet.thrift.ThriftParquetWriter;
+import parquet.hadoop.thrift.ThriftToParquetFileWriter;
+import parquet.hadoop.util.ContextUtil;
 
 public class TestThriftParquet {
+	@Test
 	public void myTestImplementation() throws IOException,
 			InterruptedException, TException {
 		// Creating object for thrift generated java file
@@ -46,12 +48,20 @@ public class TestThriftParquet {
 		Configuration conf = new Configuration();
 		TaskAttemptID taskId = new TaskAttemptID("local", 0, true, 0, 0);
 
-		ThriftParquetWriter<TBase<?, ?>> w2 = new ThriftParquetWriter<TBase<?, ?>>(
-				fileToCreate, (Class<TBase<?, ?>>) emp.getClass(),
-				CompressionCodecName.UNCOMPRESSED);
+		// ThriftParquetWriter<TBase<?, ?>> w2 = new
+		// ThriftParquetWriter<TBase<?, ?>>(
+		// fileToCreate, (Class<TBase<?, ?>>) emp.getClass(),
+		// CompressionCodecName.UNCOMPRESSED);
 
 		// w2.write(); // Need to add a Thrift object of type TBase.
-		w2.close();
+		// w2.close();
+
+		ThriftToParquetFileWriter w = new ThriftToParquetFileWriter(
+				fileToCreate, ContextUtil.newTaskAttemptContext(conf, taskId),
+				protocolFactory, emp.getClass());
+
+		w.write(new BytesWritable(empDtl));
+		w.close();
 
 		FileSystem fileSystem = fileToCreate.getFileSystem(conf);
 		boolean exists = fileSystem.exists(fileToCreate);
