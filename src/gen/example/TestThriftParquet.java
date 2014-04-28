@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -46,6 +47,9 @@ public class TestThriftParquet {
 		} catch (TException e) {
 			e.printStackTrace();
 		}
+
+		// empDtl : Serialized Thrift Object.
+
 		Configuration conf = new Configuration();
 
 		Path fileToCreate = new Path("target/emp.parquet");
@@ -65,7 +69,9 @@ public class TestThriftParquet {
 				fileToCreate, ContextUtil.newTaskAttemptContext(conf, taskId),
 				protocolFactory, emp.getClass());
 
-		w.write(new BytesWritable(empDtl));
+		BytesWritable bytesToWrite = new BytesWritable(empDtl);
+		System.out.println("BytesToWrite: " + bytesToWrite.toString());
+		w.write(bytesToWrite);
 		w.close();
 
 		// Test to check the file was written to Parquet.
@@ -74,14 +80,31 @@ public class TestThriftParquet {
 		assertEquals(exists, true);
 
 		// Reading back the file just written in Parquet-format
-		pr = new ParquetReader(fileToCreate, new GroupReadSupport());
+		ParquetReader parquetReader = new ParquetReader(fileToCreate,
+				new GroupReadSupport());
+		pr = parquetReader;
 		Object r = pr.read();
-
 		// Parquet File Output.
 		String myFileOutput = r.toString();
-		System.out.println("My file output is: " + myFileOutput);
+		byte[] output_data = myFileOutput.getBytes();
+		System.out.println("\nTEST: File Output (Byte Array):\n" + output_data);
+		// Deserializing thrift object
+		System.out.println("\nDE-SERIALIZATION");
+		System.out.println("------------------");
+		TDeserializer deserializer = new TDeserializer();
+		Employee empNewObj = new Employee();
+		// deserializer.deserialize(thrift object, byte array);
+		// When you de-serialize the byte array is converted to the
+		// thrift object that is passed as a parameter to this method
+		try {
+			deserializer.deserialize(empNewObj, output_data);
+		} catch (TException e) {
+			e.printStackTrace();
+		}
+
+		System.out.println("\nTEST: Deserialized File Output:\n" + empNewObj);
+		System.out.println("TEST: End of Output.");
 		pr.close();
 
 	}
-
 }

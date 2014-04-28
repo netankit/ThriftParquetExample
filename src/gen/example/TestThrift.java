@@ -12,8 +12,8 @@ public class TestThrift {
 
 		// Add the values to the above object
 		emp.setId("1");
-		emp.setName("Ankit");
-		emp.setAddress("Munich, Deutchland");
+		emp.setName("Ankit Bahuguna");
+		emp.setAddress("Munich, Deutschland");
 		emp.setPhoneNumber("11111111");
 
 		// To send this across different platforms like DOTNET etc...
@@ -48,6 +48,6 @@ public class TestThrift {
 		System.out.println("\nDE-SERIALIZATION");
 		System.out.println("------------------");
 		// Printing the deserialized thrift file
-		System.out.println("Deserialized Thrift Object" + empNew);
+		System.out.println("Deserialized Thrift Object: " + empNew);
 	}
 }
