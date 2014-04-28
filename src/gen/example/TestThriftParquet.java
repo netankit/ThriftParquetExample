@@ -16,6 +16,7 @@ import org.apache.thrift.protocol.TProtocolFactory;
 import org.junit.Test;
 
 import parquet.hadoop.ParquetReader;
+import parquet.hadoop.example.GroupReadSupport;
 import parquet.hadoop.thrift.ThriftToParquetFileWriter;
 import parquet.hadoop.util.ContextUtil;
 
@@ -31,7 +32,7 @@ public class TestThriftParquet {
 		// Add the values to the above object
 		emp.setId("1");
 		emp.setName("Ankit");
-		emp.setAddress("Munich, Deutchland");
+		emp.setAddress("Munich, Deutschland");
 		emp.setPhoneNumber("11111111");
 
 		// To send this across different platforms like DOTNET etc...
@@ -49,7 +50,7 @@ public class TestThriftParquet {
 
 		Path fileToCreate = new Path("target/emp.parquet");
 		// Deletes the existing file with the same name if found on the given
-		// path in the filesystem.
+		// path in the file system.
 		FileSystem fs = fileToCreate.getFileSystem(conf);
 		if (fs.exists(fileToCreate)) {
 			fs.delete(fileToCreate, true);
@@ -73,11 +74,13 @@ public class TestThriftParquet {
 		assertEquals(exists, true);
 
 		// Reading back the file just written in Parquet-format
-		// ERROR: java.lang.NullPointerException Occurs!!!
-		pr = new ParquetReader<Object>(fileToCreate, null, null);
+		pr = new ParquetReader(fileToCreate, new GroupReadSupport());
+		Object r = pr.read();
 
-		String myFileOutput = pr.toString();
+		// Parquet File Output.
+		String myFileOutput = r.toString();
 		System.out.println("My file output is: " + myFileOutput);
+		pr.close();
 
 	}
 
