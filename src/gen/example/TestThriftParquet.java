@@ -30,7 +30,7 @@ public class TestThriftParquet {
 		// Creating object for thrift generated java file
 		Employee emp = new Employee();
 
-		// Add the values to the above object
+		// Add the values to the emp Employee object
 		emp.setId("1");
 		emp.setName("Ankit");
 		emp.setAddress("Munich, Deutschland");
@@ -48,10 +48,25 @@ public class TestThriftParquet {
 			e.printStackTrace();
 		}
 
+		TDeserializer deserializer1 = new TDeserializer();
+		Employee empNewObj1 = new Employee();
+		// deserializer.deserialize(thrift object, byte array);
+		// When you de-serialize the byte array is converted to the
+		// thrift object that is passed as a parameter to this method
+		try {
+			deserializer1.deserialize(empNewObj1, empDtl);
+		} catch (TException e) {
+			// e.printStackTrace();
+		}
+		BytesWritable bytesToWrite1 = new BytesWritable(empDtl);
+
+		System.out.println("TEST: Bytes Output:\n" + bytesToWrite1.getBytes());
+
+		System.out.println("TEST: Deserialized Output:\n" + empNewObj1);
+
 		// empDtl : Serialized Thrift Object.
 
 		Configuration conf = new Configuration();
-
 		Path fileToCreate = new Path("target/emp.parquet");
 		// Deletes the existing file with the same name if found on the given
 		// path in the file system.
@@ -70,7 +85,7 @@ public class TestThriftParquet {
 				protocolFactory, emp.getClass());
 
 		BytesWritable bytesToWrite = new BytesWritable(empDtl);
-		System.out.println("BytesToWrite: " + bytesToWrite.toString());
+		System.out.println("BytesToWrite: " + bytesToWrite.getBytes());
 		w.write(bytesToWrite);
 		w.close();
 
@@ -89,8 +104,6 @@ public class TestThriftParquet {
 		byte[] output_data = myFileOutput.getBytes();
 		System.out.println("\nTEST: File Output (Byte Array):\n" + output_data);
 		// Deserializing thrift object
-		System.out.println("\nDE-SERIALIZATION");
-		System.out.println("------------------");
 		TDeserializer deserializer = new TDeserializer();
 		Employee empNewObj = new Employee();
 		// deserializer.deserialize(thrift object, byte array);
@@ -102,8 +115,8 @@ public class TestThriftParquet {
 			e.printStackTrace();
 		}
 
-		System.out.println("\nTEST: Deserialized File Output:\n" + empNewObj);
-		System.out.println("TEST: End of Output.");
+		System.out.println("TEST: Deserialized File Output:\n" + empNewObj);
+		System.out.println("TEST: End of Output.\n");
 		pr.close();
 
 	}
