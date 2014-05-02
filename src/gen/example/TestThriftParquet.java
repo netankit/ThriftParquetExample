@@ -16,7 +16,6 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.junit.Test;
 
-import parquet.example.data.Group;
 import parquet.hadoop.ParquetReader;
 import parquet.hadoop.example.GroupReadSupport;
 import parquet.hadoop.thrift.ThriftToParquetFileWriter;
@@ -43,22 +42,17 @@ public class TestThriftParquet {
 
 		byte[] empDtl = null;
 		TSerializer serializer = new TSerializer();
-		try {
-			empDtl = serializer.serialize(emp);
-		} catch (TException e) {
-			e.printStackTrace();
-		}
+
+		empDtl = serializer.serialize(emp);
 
 		TDeserializer deserializer1 = new TDeserializer();
 		Employee empNewObj1 = new Employee();
 		// deserializer.deserialize(thrift object, byte array);
 		// When you de-serialize the byte array is converted to the
 		// thrift object that is passed as a parameter to this method
-		try {
-			deserializer1.deserialize(empNewObj1, empDtl);
-		} catch (TException e) {
-			// e.printStackTrace();
-		}
+
+		deserializer1.deserialize(empNewObj1, empDtl);
+
 		BytesWritable bytesToWrite1 = new BytesWritable(empDtl);
 
 		System.out.println("TEST: Bytes Output:\n" + bytesToWrite1.getBytes());
@@ -81,14 +75,14 @@ public class TestThriftParquet {
 		// Writing a Thrift serialized object to Parquet.
 		// Note: ThriftToParquetFileWriter is the way to go if the thrift is
 		// already coming in the form of bytes
-		ThriftToParquetFileWriter w = new ThriftToParquetFileWriter(
+		ThriftToParquetFileWriter writeTPObject = new ThriftToParquetFileWriter(
 				fileToCreate, ContextUtil.newTaskAttemptContext(conf, taskId),
 				protocolFactory, emp.getClass());
 
 		BytesWritable bytesToWrite = new BytesWritable(empDtl);
 		System.out.println("BytesToWrite: " + bytesToWrite.getBytes());
-		w.write(bytesToWrite);
-		w.close();
+		writeTPObject.write(bytesToWrite);
+		writeTPObject.close();
 
 		// Test to check the file was written to Parquet.
 		FileSystem fileSystem = fileToCreate.getFileSystem(conf);
@@ -98,10 +92,9 @@ public class TestThriftParquet {
 		// Reading back the file just written in Parquet-format
 		ParquetReader parquetReader = new ParquetReader(fileToCreate,
 				new GroupReadSupport());
-		pr = parquetReader;
-		Object r = pr.read();
+		Object readObj = parquetReader.read();
 		// Parquet File Output.
-		String myFileOutput = r.toString();
+		String myFileOutput = readObj.toString();
 		byte[] output_data = myFileOutput.getBytes();
 		System.out.println("\nTEST: File Output (Byte Array):\n" + output_data);
 		// Deserializing thrift object
@@ -110,11 +103,7 @@ public class TestThriftParquet {
 		// deserializer.deserialize(thrift object, byte array);
 		// When you de-serialize the byte array is converted to the
 		// thrift object that is passed as a parameter to this method
-		try {
-			deserializer.deserialize(empNewObj, output_data);
-		} catch (TException e) {
-			e.printStackTrace();
-		}
+		deserializer.deserialize(empNewObj, output_data);
 
 		System.out.println("TEST: Deserialized File Output:\n" + empNewObj);
 		System.out.println("TEST: End of Output.\n");
@@ -122,71 +111,72 @@ public class TestThriftParquet {
 
 	}
 
-    @Test
-    public void test() throws Exception {
+	// @Test
+	// public void test() throws Exception {
+	//
+	// Employee employee = new Employee();
+	// employee.setId("1");
+	// employee.setName("Ankit");
+	// employee.setAddress("Munich, Deutschland");
+	// employee.setPhoneNumber("11111111");
+	//
+	// Configuration conf = new Configuration();
+	// Path file = new Path("target/emp.parquet");
+	// FileSystem fs = file.getFileSystem(conf);
+	// if (fs.exists(file)) {
+	// fs.delete(file, true);
+	// }
+	// TProtocolFactory protocolFactory = new TCompactProtocol.Factory();
+	// TaskAttemptID taskId = new TaskAttemptID("local", 0, true, 0, 0);
+	//
+	// ThriftToParquetFileWriter thriftWriter = new ThriftToParquetFileWriter(
+	// file, ContextUtil.newTaskAttemptContext(conf, taskId),
+	// protocolFactory, employee.getClass());
+	//
+	// TSerializer serializer = new TSerializer();
+	// byte[] serEmployee = serializer.serialize(employee);
+	// BytesWritable bytesWritable = new BytesWritable(serEmployee);
+	//
+	// System.out.println("bytesWritable = " + bytesWritable);
+	//
+	// thriftWriter.write(bytesWritable);
+	// thriftWriter.close();
+	//
+	// ParquetReader<Group> parquetReader = new ParquetReader<>(file,
+	// new GroupReadSupport());
+	// Group group = parquetReader.read();
+	//
+	// byte[] output_data = group.toString().getBytes();
+	// parquetReader.close();
+	//
+	// TDeserializer deserializer = new TDeserializer();
+	// Employee deserEmployee = new Employee();
+	// deserializer.deserialize(deserEmployee, output_data);
+	//
+	// System.out.println("TEST: Deserialized File Output:\n" + deserEmployee);
+	// System.out.println("TEST: End of Output.\n");
+	//
+	// }
 
-        Employee employee = new Employee();
-        employee.setId("1");
-        employee.setName("Ankit");
-        employee.setAddress("Munich, Deutschland");
-        employee.setPhoneNumber("11111111");
-
-        Configuration conf = new Configuration();
-        Path file = new Path("target/emp.parquet");
-        FileSystem fs = file.getFileSystem(conf);
-        if (fs.exists(file)) {
-            fs.delete(file, true);
-        }
-        TProtocolFactory protocolFactory = new TCompactProtocol.Factory();
-        TaskAttemptID taskId = new TaskAttemptID("local", 0, true, 0, 0);
-
-        ThriftToParquetFileWriter thriftWriter = new ThriftToParquetFileWriter(
-                file, ContextUtil.newTaskAttemptContext(conf, taskId),
-                protocolFactory, employee.getClass());
-
-        TSerializer serializer = new TSerializer();
-        byte[] serEmployee = serializer.serialize(employee);
-        BytesWritable bytesWritable = new BytesWritable(serEmployee);
-
-        System.out.println("bytesWritable = " + bytesWritable);
-
-        thriftWriter.write(bytesWritable);
-        thriftWriter.close();
-
-        ParquetReader<Group> parquetReader = new ParquetReader<>(file, new GroupReadSupport());
-        Group group = parquetReader.read();
-
-        byte[] output_data = group.toString().getBytes();
-        parquetReader.close();
-
-        TDeserializer deserializer = new TDeserializer();
-        Employee deserEmployee = new Employee();
-        deserializer.deserialize(deserEmployee, output_data);
-
-        System.out.println("TEST: Deserialized File Output:\n" + deserEmployee);
-        System.out.println("TEST: End of Output.\n");
-
-    }
-
-    @Test
-    public void test1() throws Exception {
-
-        Employee employee = new Employee();
-        employee.setId("1");
-        employee.setName("Ankit");
-        employee.setAddress("Munich, Deutschland");
-        employee.setPhoneNumber("11111111");
-
-        TSerializer serializer = new TSerializer();
-        byte[] serEmployee = serializer.serialize(employee);
-        BytesWritable bytesWritable = new BytesWritable(serEmployee);
-
-        System.out.println("bytesWritable = " + bytesWritable);
-
-        TDeserializer deserializer = new TDeserializer();
-        Employee deserEmployee = new Employee();
-        deserializer.deserialize(deserEmployee, bytesWritable.getBytes());
-
-        System.out.println("TEST: " + deserEmployee);
-    }
+	// @Test
+	// public void test1() throws Exception {
+	//
+	// Employee employee = new Employee();
+	// employee.setId("1");
+	// employee.setName("Ankit");
+	// employee.setAddress("Munich, Deutschland");
+	// employee.setPhoneNumber("11111111");
+	//
+	// TSerializer serializer = new TSerializer();
+	// byte[] serEmployee = serializer.serialize(employee);
+	// BytesWritable bytesWritable = new BytesWritable(serEmployee);
+	//
+	// System.out.println("bytesWritable = " + bytesWritable);
+	//
+	// TDeserializer deserializer = new TDeserializer();
+	// Employee deserEmployee = new Employee();
+	// deserializer.deserialize(deserEmployee, bytesWritable.getBytes());
+	//
+	// System.out.println("TEST: " + deserEmployee);
+	// }
 }
