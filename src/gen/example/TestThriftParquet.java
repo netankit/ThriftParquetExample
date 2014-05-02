@@ -16,6 +16,7 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.junit.Test;
 
+import parquet.example.data.Group;
 import parquet.hadoop.ParquetReader;
 import parquet.hadoop.example.GroupReadSupport;
 import parquet.hadoop.thrift.ThriftToParquetFileWriter;
@@ -120,4 +121,72 @@ public class TestThriftParquet {
 		pr.close();
 
 	}
+
+    @Test
+    public void test() throws Exception {
+
+        Employee employee = new Employee();
+        employee.setId("1");
+        employee.setName("Ankit");
+        employee.setAddress("Munich, Deutschland");
+        employee.setPhoneNumber("11111111");
+
+        Configuration conf = new Configuration();
+        Path file = new Path("target/emp.parquet");
+        FileSystem fs = file.getFileSystem(conf);
+        if (fs.exists(file)) {
+            fs.delete(file, true);
+        }
+        TProtocolFactory protocolFactory = new TCompactProtocol.Factory();
+        TaskAttemptID taskId = new TaskAttemptID("local", 0, true, 0, 0);
+
+        ThriftToParquetFileWriter thriftWriter = new ThriftToParquetFileWriter(
+                file, ContextUtil.newTaskAttemptContext(conf, taskId),
+                protocolFactory, employee.getClass());
+
+        TSerializer serializer = new TSerializer();
+        byte[] serEmployee = serializer.serialize(employee);
+        BytesWritable bytesWritable = new BytesWritable(serEmployee);
+
+        System.out.println("bytesWritable = " + bytesWritable);
+
+        thriftWriter.write(bytesWritable);
+        thriftWriter.close();
+
+        ParquetReader<Group> parquetReader = new ParquetReader<>(file, new GroupReadSupport());
+        Group group = parquetReader.read();
+
+        byte[] output_data = group.toString().getBytes();
+        parquetReader.close();
+
+        TDeserializer deserializer = new TDeserializer();
+        Employee deserEmployee = new Employee();
+        deserializer.deserialize(deserEmployee, output_data);
+
+        System.out.println("TEST: Deserialized File Output:\n" + deserEmployee);
+        System.out.println("TEST: End of Output.\n");
+
+    }
+
+    @Test
+    public void test1() throws Exception {
+
+        Employee employee = new Employee();
+        employee.setId("1");
+        employee.setName("Ankit");
+        employee.setAddress("Munich, Deutschland");
+        employee.setPhoneNumber("11111111");
+
+        TSerializer serializer = new TSerializer();
+        byte[] serEmployee = serializer.serialize(employee);
+        BytesWritable bytesWritable = new BytesWritable(serEmployee);
+
+        System.out.println("bytesWritable = " + bytesWritable);
+
+        TDeserializer deserializer = new TDeserializer();
+        Employee deserEmployee = new Employee();
+        deserializer.deserialize(deserEmployee, bytesWritable.getBytes());
+
+        System.out.println("TEST: " + deserEmployee);
+    }
 }

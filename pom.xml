@@ -47,28 +47,37 @@
 <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>parquet-common</artifactId>
-      <version>1.1.2-SNAPSHOT</version>
+      <version>1.4.1</version>
     </dependency>
     <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>parquet-encoding</artifactId>
-      <version>1.1.2-SNAPSHOT</version>
+      <version>1.4.1</version>
     </dependency>    
     <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>parquet-column</artifactId>
-      <version>1.1.2-SNAPSHOT</version>
+      <version>1.4.1</version>
     </dependency>
     <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>parquet-hadoop</artifactId>
-      <version>1.1.2-SNAPSHOT</version>
+      <version>1.4.1</version>
     </dependency>
     <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>parquet-thrift</artifactId>
       <version>1.4.1</version>
     </dependency>
-    
-</dependencies>
+      <dependency>
+      	<groupId>junit</groupId>
+      	<artifactId>junit</artifactId>
+      	<version>4.10</version>
+      </dependency>
+      <dependency>
+      	<groupId>org.apache.hadoop</groupId>
+      	<artifactId>hadoop-core</artifactId>
+      	<version>1.2.1</version>
+      </dependency>
+  </dependencies>
 </project>
