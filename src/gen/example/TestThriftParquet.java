@@ -2,7 +2,6 @@ package gen.example;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -14,26 +13,29 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
-import org.apache.thrift.transport.TIOStreamTransport;
 import org.junit.Test;
 
 import parquet.hadoop.ParquetReader;
+import parquet.hadoop.metadata.CompressionCodecName;
 import parquet.hadoop.thrift.ThriftReadSupport;
 import parquet.hadoop.thrift.ThriftToParquetFileWriter;
 import parquet.hadoop.util.ContextUtil;
 import parquet.thrift.SkippableException;
+import parquet.thrift.ThriftParquetWriter;
 
 public class TestThriftParquet {
 	private ParquetReader<Object> pr;
 	Configuration conf = new Configuration();
 	Path fileToCreate = new Path("target/emp.parquet");
 
+	/*
+	 * The following test allows writing a standard Thrift Object into
+	 * ParquetFile.
+	 */
 	@Test
-	public void writeParquet() throws IOException, InterruptedException,
+	public void SimpleThriftWrite() throws IOException, InterruptedException,
 			TException, SkippableException {
-
 		// Creating object for thrift generated java file
 		Employee emp = new Employee();
 
@@ -43,11 +45,43 @@ public class TestThriftParquet {
 		emp.setAddress("Munich, Deutschland");
 		emp.setPhoneNumber("11111111");
 
+		FileSystem fs = fileToCreate.getFileSystem(conf);
+		if (fs.exists(fileToCreate)) {
+			fs.delete(fileToCreate, true);
+		}
+
+		Class<Employee> BaseClass = (Class<Employee>) emp.getClass();
+		ThriftParquetWriter<Employee> thriftParquetWriter = new ThriftParquetWriter<Employee>(
+				fileToCreate, BaseClass, CompressionCodecName.UNCOMPRESSED);
+		thriftParquetWriter.write(emp);
+		thriftParquetWriter.close();
+
+	}
+
+	/*
+	 * The following test allows writing a Thrift serialized Object into
+	 * ParquetFile.
+	 */
+	@Test
+	public void serializedThriftWrite() throws IOException,
+			InterruptedException, TException, SkippableException {
+
+		// Creating object for thrift generated java file
+		Employee employeeSerialized = new Employee();
+
+		// Add the values to the emp Employee object
+		employeeSerialized.setId("2");
+		employeeSerialized.setName("SampleName");
+		employeeSerialized.setAddress("India");
+		employeeSerialized.setPhoneNumber("222222222");
+
 		// THRIFT SERIALIZED OBJECT
 		TSerializer serializer = new TSerializer();
-		byte[] empDtl = serializer.serialize(emp);
+		byte[] employeeSerializedByte = serializer
+				.serialize(employeeSerialized);
 
-		deserialize(empDtl);
+		// deserialize(employeeSerializedByte);
+		Path fileToCreate = new Path("target/emp_serialized.parquet");
 
 		FileSystem fs = fileToCreate.getFileSystem(conf);
 		if (fs.exists(fileToCreate)) {
@@ -59,23 +93,23 @@ public class TestThriftParquet {
 		// Writing a Thrift serialized object to Parquet.
 		// Note: ThriftToParquetFileWriter is the way to go if the thrift is
 		// already coming in the form of bytes
-		ThriftToParquetFileWriter writeTPObject = new ThriftToParquetFileWriter(
+		ThriftToParquetFileWriter serializedTPWriteObject = new ThriftToParquetFileWriter(
 				fileToCreate, ContextUtil.newTaskAttemptContext(conf, taskId),
-				protocolFactory, emp.getClass());
+				protocolFactory, employeeSerialized.getClass());
 
-		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		final TProtocol protocol = protocolFactory
-				.getProtocol(new TIOStreamTransport(baos));
-		writeTPObject.write(new BytesWritable(baos.toByteArray()));
-		emp.write(protocol);
-		writeTPObject.close();
+		BytesWritable byteWritableObject = new BytesWritable(
+				employeeSerializedByte);
+		serializedTPWriteObject.write(byteWritableObject);
+		serializedTPWriteObject.close();
 		System.out.println("FILE WRITE FINISHED");
 
 	}
 
+	/* Reading a Parquet File */
 	@Test
 	public void readParquet() throws IOException, TException,
 			SkippableException {
+		Path fileToCreate = new Path("target/emp_serialized.parquet");
 		// Test to check the file was written to Parquet. FileSystem
 		FileSystem fileSystem = fileToCreate.getFileSystem(conf);
 		boolean exists = fileSystem.exists(fileToCreate);
@@ -97,7 +131,7 @@ public class TestThriftParquet {
 				fileToCreate, readSupport);
 		Employee employee = parquetReader.read();
 		parquetReader.close();
-		System.out.println(employee);
+		System.out.println("Read Output: " + employee);
 		System.out.println("FILE READ FINISHED");
 	}
 
