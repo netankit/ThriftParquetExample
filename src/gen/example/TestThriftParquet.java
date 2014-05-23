@@ -2,6 +2,7 @@ package gen.example;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -13,11 +14,14 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.apache.thrift.transport.TIOStreamTransport;
 import org.junit.Test;
 
 import parquet.hadoop.ParquetReader;
 import parquet.hadoop.example.GroupReadSupport;
+import parquet.hadoop.thrift.ThriftReadSupport;
 import parquet.hadoop.thrift.ThriftToParquetFileWriter;
 import parquet.hadoop.util.ContextUtil;
 
@@ -40,31 +44,16 @@ public class TestThriftParquet {
 		// this object needs to be serialized
 		// The serialized thrift object is nothing but a byte array
 
-		byte[] empDtl = null;
 		TSerializer serializer = new TSerializer();
-
-		empDtl = serializer.serialize(emp);
 
 		TDeserializer deserializer1 = new TDeserializer();
 		Employee empNewObj1 = new Employee();
-		// deserializer.deserialize(thrift object, byte array);
-		// When you de-serialize the byte array is converted to the
-		// thrift object that is passed as a parameter to this method
 
+		byte[] empDtl = serializer.serialize(emp);
 		deserializer1.deserialize(empNewObj1, empDtl);
-
-		BytesWritable bytesToWrite1 = new BytesWritable(empDtl);
-
-		System.out.println("TEST: Bytes Output:\n" + bytesToWrite1.getBytes());
-
-		System.out.println("TEST: Deserialized Output:\n" + empNewObj1);
-
-		// empDtl : Serialized Thrift Object.
 
 		Configuration conf = new Configuration();
 		Path fileToCreate = new Path("target/emp.parquet");
-		// Deletes the existing file with the same name if found on the given
-		// path in the file system.
 		FileSystem fs = fileToCreate.getFileSystem(conf);
 		if (fs.exists(fileToCreate)) {
 			fs.delete(fileToCreate, true);
@@ -79,9 +68,10 @@ public class TestThriftParquet {
 				fileToCreate, ContextUtil.newTaskAttemptContext(conf, taskId),
 				protocolFactory, emp.getClass());
 
-		BytesWritable bytesToWrite = new BytesWritable(empDtl);
-		System.out.println("BytesToWrite: " + bytesToWrite.getBytes());
-		writeTPObject.write(bytesToWrite);
+		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final TProtocol protocol = protocolFactory.getProtocol(new TIOStreamTransport(baos));
+		writeTPObject.write(new BytesWritable(baos.toByteArray()));
+		emp.write(protocol);
 		writeTPObject.close();
 
 		// Test to check the file was written to Parquet.
@@ -89,27 +79,34 @@ public class TestThriftParquet {
 		boolean exists = fileSystem.exists(fileToCreate);
 		assertEquals(exists, true);
 
-		// Reading back the file just written in Parquet-format
-		ParquetReader parquetReader = new ParquetReader(fileToCreate,
-				new GroupReadSupport());
-		Object readObj = parquetReader.read();
-		// Parquet File Output.
-		String myFileOutput = readObj.toString();
-		byte[] output_data = myFileOutput.getBytes();
-		System.out.println("\nTEST: File Output (Byte Array):\n" + output_data);
-		// Deserializing thrift object
-		TDeserializer deserializer = new TDeserializer();
-		Employee empNewObj = new Employee();
-		// deserializer.deserialize(thrift object, byte array);
-		// When you de-serialize the byte array is converted to the
-		// thrift object that is passed as a parameter to this method
-		deserializer.deserialize(empNewObj, output_data);
-
-		System.out.println("TEST: Deserialized File Output:\n" + empNewObj);
-		System.out.println("TEST: End of Output.\n");
-		pr.close();
+		read(fileToCreate);
 
 	}
+
+    private void read(Path fileToCreate) throws IOException, TException {
+        // Reading back the file just written in Parquet-format
+		ThriftReadSupport<Employee> readSupport = new ThriftReadSupport<Employee>(Employee.class);
+        ParquetReader<Employee> parquetReader = new ParquetReader<Employee>(fileToCreate,
+				readSupport);
+		Employee employee = parquetReader.read();
+		parquetReader.close();
+		System.out.println(employee);
+		// Parquet File Output.
+//		String myFileOutput = readObj.toString();
+//		byte[] output_data = myFileOutput.getBytes();
+//		System.out.println("\nTEST: File Output (Byte Array):\n" + output_data);
+//		// Deserializing thrift object
+//		TDeserializer deserializer = new TDeserializer();
+//		Employee empNewObj = new Employee();
+//		// deserializer.deserialize(thrift object, byte array);
+//		// When you de-serialize the byte array is converted to the
+//		// thrift object that is passed as a parameter to this method
+//		deserializer.deserialize(empNewObj, output_data);
+//
+//		System.out.println("TEST: Deserialized File Output:\n" + empNewObj);
+//		System.out.println("TEST: End of Output.\n");
+//		pr.close();
+    }
 
 	// @Test
 	// public void test() throws Exception {
